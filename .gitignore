@@ -1,0 +1,17 @@
+# Entorno
+.env
+
+# Python
+__pycache__/
+*.pyc
+backend/src/**/__pycache__/
+
+# Node
+node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
