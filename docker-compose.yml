@@ -1,0 +1,212 @@
+name: aplicaciones-distribuidas
+
+# =================================================================
+# Arquitectura:
+#   Navegador -> NGINX (:80) -> [app-node-1 | app-node-2 | app-node-3]
+#                                          -> MySQL Master -> MySQL Replica
+#
+#   Navegador -> phpMyAdmin (:8081) -> MySQL Master / MySQL Replica
+#                (administracion web de las bases de datos)
+#
+#   Windows (host) -> MySQL Master (:3306) / MySQL Replica (:3307)
+#                (puertos expuestos para clientes MySQL externos,
+#                 p. ej. MySQL Workbench o DBeaver corriendo en Windows)
+#
+# Unica red interna compartida para la resolucion de nombres entre
+# contenedores (Docker DNS): ad-network
+# =================================================================
+
+services:
+
+  # -------------------------------------------------------------
+  # NGINX: balanceador de carga por pesos + servidor del frontend
+  # -------------------------------------------------------------
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: ad-nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      app-node-1:
+        condition: service_healthy
+      app-node-2:
+        condition: service_healthy
+      app-node-3:
+        condition: service_healthy
+    networks:
+      - ad-network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # Tres nodos identicos de la aplicacion (misma imagen, distinto
+  # APP_NODE_NAME). Stateless: no guardan sesion en memoria local.
+  # -------------------------------------------------------------
+  app-node-1:
+    build:
+      context: ./backend
+    container_name: ad-app-node-1
+    environment:
+      APP_NODE_NAME: app-node-1
+      PORT: 3000
+      DB_HOST: mysql-master
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  app-node-2:
+    build:
+      context: ./backend
+    container_name: ad-app-node-2
+    environment:
+      APP_NODE_NAME: app-node-2
+      PORT: 3000
+      DB_HOST: mysql-master
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  app-node-3:
+    build:
+      context: ./backend
+    container_name: ad-app-node-3
+    environment:
+      APP_NODE_NAME: app-node-3
+      PORT: 3000
+      DB_HOST: mysql-master
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # MySQL Master: recibe todas las escrituras de la aplicacion
+  # -------------------------------------------------------------
+  mysql-master:
+    build:
+      context: ./mysql/master
+    container_name: ad-mysql-master
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "${MYSQL_MASTER_PORT:-3306}:3306"
+    volumes:
+      - mysql-master-data:/var/lib/mysql
+      - ./mysql/master/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # MySQL Replica: replica de lectura y respaldo distribuido.
+  # Se auto-configura contra el Master en su primer arranque.
+  # -------------------------------------------------------------
+  mysql-replica:
+    build:
+      context: ./mysql/replica
+    container_name: ad-mysql-replica
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${MYSQL_REPLICA_PORT:-3307}:3306"
+    volumes:
+      - mysql-replica-data:/var/lib/mysql
+      - ./mysql/replica/init-replica.sh:/docker-entrypoint-initdb.d/01-init-replica.sh:ro
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # phpMyAdmin: interfaz web unica de administracion para las
+  # bases de datos MySQL (Master y Replica). Por defecto se
+  # conecta al Master; PMA_ARBITRARY permite tambien iniciar
+  # sesion manualmente contra "mysql-replica" desde el propio
+  # formulario de login de phpMyAdmin.
+  # -------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: ad-phpmyadmin
+    environment:
+      PMA_HOST: mysql-master
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      mysql-replica:
+        condition: service_healthy
+    networks:
+      - ad-network
+    restart: unless-stopped
+
+networks:
+  ad-network:
+    driver: bridge
+
+volumes:
+  mysql-master-data:
+  mysql-replica-data:
