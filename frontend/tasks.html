@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mis tareas | Mesa de Entregas</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="institutional-bar">Escuela Politécnica Nacional &middot; Escuela de Formación de Tecnólogos (ESFOT)</div>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__mark">EPN</span>
+      <span class="topbar__title">Mesa de Entregas</span>
+    </div>
+    <div class="topbar__node" id="nodeIndicator" title="Nodo que atendio la ultima solicitud"></div>
+    <div class="topbar__user">
+      <span id="userName"></span>
+      <span class="role-badge" id="roleBadge"></span>
+      <button class="btn btn--ghost" id="logoutBtn">Cerrar sesion</button>
+    </div>
+  </header>
+
+  <!-- Sub-vista 1: tablero de tareas -->
+  <main class="view view--tasks" id="view-tasks">
+    <section class="section-head">
+      <div>
+        <p class="section-head__eyebrow">Tablero</p>
+        <h2 class="section-head__title">Tareas disponibles</h2>
+      </div>
+      <button class="btn btn--ghost" id="refreshTasksBtn">Actualizar</button>
+    </section>
+
+    <div id="tasksMessage" class="alert" hidden></div>
+    <div class="task-grid" id="taskGrid"></div>
+  </main>
+
+  <!-- Sub-vista 2: detalle de una tarea (se abre al hacer clic en una tarjeta) -->
+  <main class="view view--detail" id="view-detail" hidden>
+    <button class="btn btn--link" id="backToTasksBtn">&larr; Volver a tareas</button>
+
+    <section class="detail-card">
+      <p class="detail-card__code" id="detailCode"></p>
+      <h2 class="detail-card__title" id="detailTitle"></h2>
+      <p class="detail-card__deadline" id="detailDeadline"></p>
+      <p class="detail-card__description" id="detailDescription"></p>
+
+      <div id="detailMessage" class="alert" hidden></div>
+
+      <div id="submitBlock">
+        <h3 class="detail-card__section-title">Enviar respuesta</h3>
+        <form id="submitForm" class="form">
+          <label class="field">
+            <span class="field__label">Tu respuesta</span>
+            <textarea id="submitAnswer" class="field__input field__input--textarea" rows="6" placeholder="Escribe aqui tu respuesta..." required></textarea>
+          </label>
+          <button type="submit" class="btn btn--primary">Entregar tarea</button>
+        </form>
+      </div>
+
+      <div id="submissionBlock" class="submission-block" hidden>
+        <h3 class="detail-card__section-title">Tu entrega</h3>
+        <p class="submission-block__meta" id="submissionDate"></p>
+        <p class="submission-block__answer" id="submissionAnswer"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Proyecto Aplicaciones Distribuidas &middot; Escuela Politecnica Nacional</span>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/tasks.js"></script>
+</body>
+</html>
