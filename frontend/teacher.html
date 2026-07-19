@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel docente | Tareas</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="institutional-bar">Escuela Politécnica Nacional &middot; Escuela de Formación de Tecnólogos (ESFOT)</div>
+
+  <header class="topbar" id="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__mark">EPN</span>
+      <span class="topbar__title">Mesa de Entregas</span>
+    </div>
+    <div class="topbar__node" id="nodeIndicator" title="Nodo que atendio la ultima solicitud"></div>
+    <div class="topbar__user">
+      <span id="userName"></span>
+      <span class="role-badge" id="roleBadge"></span>
+      <button class="btn btn--ghost" id="logoutBtn">Cerrar sesion</button>
+    </div>
+  </header>
+
+  <main class="view view--teacher" id="view-teacher">
+    <section class="section-head">
+      <div>
+        <p class="section-head__eyebrow">Panel docente</p>
+        <h2 class="section-head__title">Registrar nueva tarea</h2>
+      </div>
+    </section>
+
+    <div class="teacher-layout">
+      <section class="detail-card teacher-form-card">
+        <div id="teacherMessage" class="alert" hidden></div>
+        <form id="teacherTaskForm" class="form">
+          <label class="field">
+            <span class="field__label">Titulo</span>
+            <input type="text" id="teacherTitle" class="field__input" placeholder="Ej: Fundamentos de Docker" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Codigo</span>
+            <input type="text" id="teacherCode" class="field__input" placeholder="Ej: AD-T06" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Descripcion</span>
+            <textarea id="teacherDescription" class="field__input field__input--textarea" rows="5" placeholder="Instrucciones de la tarea..." required></textarea>
+          </label>
+          <label class="field">
+            <span class="field__label">Fecha y hora limite</span>
+            <input type="datetime-local" id="teacherDeadline" class="field__input" required />
+          </label>
+          <button type="submit" class="btn btn--primary">Registrar tarea</button>
+        </form>
+      </section>
+
+      <section class="teacher-list">
+        <p class="section-head__eyebrow" style="margin-bottom:10px;">Tareas ya registradas</p>
+        <div id="teacherTaskList" class="task-grid task-grid--compact"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>Proyecto Aplicaciones Distribuidas &middot; Escuela Politecnica Nacional</span>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/teacher.js"></script>
+</body>
+</html>
